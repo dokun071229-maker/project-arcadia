@@ -129,30 +129,6 @@ const ground=new THREE.Mesh(new THREE.PlaneGeometry(110,110),new THREE.MeshStand
 const cityGroup=new THREE.Group();scene.add(cityGroup);
 const matRoad=new THREE.MeshStandardMaterial({color:0x263442,roughness:.9}),matSide=new THREE.MeshStandardMaterial({color:0x9aa6a6}),matPark=new THREE.MeshStandardMaterial({color:0x356b50}),matGlass=new THREE.MeshStandardMaterial({color:0x5b9db0,metalness:.35,roughness:.3}),matConcrete=new THREE.MeshStandardMaterial({color:0x9caab4,roughness:.8});
 const box=(w,h,d,mat,x,y,z,parent=cityGroup)=>{const m=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),mat);m.position.set(x,y+h/2,z);m.castShadow=true;m.receiveShadow=true;parent.add(m);return m};
-function buildCity(){
- cityGroup.clear();
- // city blocks, road grid
- box(110,.15,110,matSide,0,-.12,0);
- for(let p=-42;p<=42;p+=14){box(3,.04,100,matRoad,p,.01,0);box(100,.04,3,matRoad,0,.015,p)}
- // sidewalks and central plaza
- box(18,.12,14,matPark,0,.08,0);
- // blocks of towers and mid-rise buildings
- for(let gx=-4;gx<=4;gx++)for(let gz=-4;gz<=4;gz++){
-  if(Math.abs(gx)%1===0 && Math.abs(gz)%1===0 && (gx===0||gz===0))continue;
-  const x=gx*10+(Math.random()-.5)*2,z=gz*10+(Math.random()-.5)*2;
-  const h=3+Math.random()* (Math.abs(gx)+Math.abs(gz)<4?22:11);
-  const w=3+Math.random()*2,d=3+Math.random()*2;
-  const m=box(w,h,d,Math.random()<.48?matGlass:matConcrete,x,h/2,z);
-  if(h>12){const crown=box(w*.65,1.2,d*.65,matGlass,x,h+0.6,z);crown.castShadow=true}
-  // windows as subtle facade strips
-  if(h>7){const winmat=new THREE.MeshStandardMaterial({color:0xc5e8ef,emissive:0x244454,roughness:.3});for(let yy=2;yy<h-1;yy+=2.5){const win=new THREE.Mesh(new THREE.BoxGeometry(w+.02,.13,.035),winmat);win.position.set(x,yy,z+d/2+.02);cityGroup.add(win)}}
- }
- // trees in plaza and street medians
- const trunk=new THREE.MeshStandardMaterial({color:0x654a32}),leaves=new THREE.MeshStandardMaterial({color:0x3d9164});
- for(let i=0;i<36;i++){let x=(Math.random()-.5)*85,z=(Math.random()-.5)*85;if(Math.abs(x%14)<2||Math.abs(z%14)<2)continue;const t=new THREE.Mesh(new THREE.CylinderGeometry(.12,.17,1.4,6),trunk);t.position.set(x,.7,z);cityGroup.add(t);const l=new THREE.Mesh(new THREE.SphereGeometry(.75,7,6),leaves);l.position.set(x,1.8,z);cityGroup.add(l)}
- // moving cars
- for(let i=0;i<22;i++){const car=new THREE.Mesh(new THREE.BoxGeometry(.65,.35,1.25),new THREE.MeshStandardMaterial({color:[0xe0bd69,0x78b9d0,0xd6dce0,0xb76b66][i%4]}));car.position.set(-47+Math.random()*94,.32,Math.round((Math.random()*6)-3)*14);car.userData={axis:'x',speed:.035+Math.random()*.035};cityGroup.add(car);cars.push(car)}
-}
 const cars=[],pedestrians=[];
 function buildCity(){
  cityGroup.clear();
