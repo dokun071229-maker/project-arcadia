@@ -41,7 +41,7 @@ footer{position:fixed;bottom:0;left:0;right:0;background:#081321ed;border-top:1p
 <canvas id="city3d"></canvas>
 <div class="sceneTitle"><b id="cityName">아우렐리아</b><div class="muted" id="cityDesc">중앙 행정 · 문화 중심지</div></div>
 <div class="sceneButtons"><button id="rotateBtn" class="active">회전 ON</button><button id="homeBtn">초기 시점</button></div>
-<div class="sceneHint">손가락 드래그: 회전 · 두 손가락: 확대/축소</div>
+<div class="sceneHint">시민 보행 · 자동차 운행 · 드래그: 회전 / 확대</div>
 </div>
 <div class="panel">
 <div class="row"><b>세계 시뮬레이션 제어</b><span class="muted">실시간 진행</span></div>
@@ -153,11 +153,51 @@ function buildCity(){
  // moving cars
  for(let i=0;i<22;i++){const car=new THREE.Mesh(new THREE.BoxGeometry(.65,.35,1.25),new THREE.MeshStandardMaterial({color:[0xe0bd69,0x78b9d0,0xd6dce0,0xb76b66][i%4]}));car.position.set(-47+Math.random()*94,.32,Math.round((Math.random()*6)-3)*14);car.userData={axis:'x',speed:.035+Math.random()*.035};cityGroup.add(car);cars.push(car)}
 }
-const cars=[];buildCity();
+const cars=[],pedestrians=[];
+function buildCity(){
+ cityGroup.clear();
+ // city blocks, road grid
+ box(110,.15,110,matSide,0,-.12,0);
+ for(let p=-42;p<=42;p+=14){box(3,.04,100,matRoad,p,.01,0);box(100,.04,3,matRoad,0,.015,p)}
+ // sidewalks and central plaza
+ box(18,.12,14,matPark,0,.08,0);
+ // blocks of towers and mid-rise buildings
+ for(let gx=-4;gx<=4;gx++)for(let gz=-4;gz<=4;gz++){
+  if(Math.abs(gx)%1===0 && Math.abs(gz)%1===0 && (gx===0||gz===0))continue;
+  const x=gx*10+(Math.random()-.5)*2,z=gz*10+(Math.random()-.5)*2;
+  const h=3+Math.random()* (Math.abs(gx)+Math.abs(gz)<4?22:11);
+  const w=3+Math.random()*2,d=3+Math.random()*2;
+  box(w,h,d,Math.random()<.48?matGlass:matConcrete,x,h/2,z);
+  if(h>12)box(w*.65,1.2,d*.65,matGlass,x,h+0.6,z);
+  if(h>7){const winmat=new THREE.MeshStandardMaterial({color:0xc5e8ef,emissive:0x244454,roughness:.3});for(let yy=2;yy<h-1;yy+=2.5){const win=new THREE.Mesh(new THREE.BoxGeometry(w+.02,.13,.035),winmat);win.position.set(x,yy,z+d/2+.02);cityGroup.add(win)}}
+ }
+ const trunk=new THREE.MeshStandardMaterial({color:0x654a32}),leaves=new THREE.MeshStandardMaterial({color:0x3d9164});
+ for(let i=0;i<36;i++){let x=(Math.random()-.5)*85,z=(Math.random()-.5)*85;if(Math.abs(x%14)<2||Math.abs(z%14)<2)continue;const t=new THREE.Mesh(new THREE.CylinderGeometry(.12,.17,1.4,6),trunk);t.position.set(x,.7,z);cityGroup.add(t);const l=new THREE.Mesh(new THREE.SphereGeometry(.75,7,6),leaves);l.position.set(x,1.8,z);cityGroup.add(l)}
+ // moving cars
+ for(let i=0;i<22;i++){const car=new THREE.Mesh(new THREE.BoxGeometry(.65,.35,1.25),new THREE.MeshStandardMaterial({color:[0xe0bd69,0x78b9d0,0xd6dce0,0xb76b66][i%4]}));car.position.set(-47+Math.random()*94,.32,Math.round((Math.random()*6)-3)*14);car.userData={axis:'x',speed:.035+Math.random()*.035};cityGroup.add(car);cars.push(car)}
+ // 24 simple 3D pedestrians walking around the central plaza
+ const skinMat=new THREE.MeshStandardMaterial({color:0xe2b99a}),darkMat=new THREE.MeshStandardMaterial({color:0x263346});
+ for(let i=0;i<24;i++){
+  const person=new THREE.Group();
+  const coat=new THREE.MeshStandardMaterial({color:[0x4e91ad,0xd08b65,0x6e9b76,0x8c78b8,0xc4b36e,0x65758b][i%6]});
+  const torso=new THREE.Mesh(new THREE.CylinderGeometry(.18,.23,.62,7),coat);torso.position.y=.86;person.add(torso);
+  const head=new THREE.Mesh(new THREE.SphereGeometry(.16,8,7),skinMat);head.position.y=1.32;person.add(head);
+  const legs=[],arms=[];
+  for(const side of [-1,1]){
+   const leg=new THREE.Group();leg.position.set(side*.10,.57,0);person.add(leg);
+   const legMesh=new THREE.Mesh(new THREE.CylinderGeometry(.065,.075,.42,6),darkMat);legMesh.position.y=-.21;leg.add(legMesh);legs.push(leg);
+   const arm=new THREE.Group();arm.position.set(side*.22,1.08,0);person.add(arm);
+   const armMesh=new THREE.Mesh(new THREE.CylinderGeometry(.055,.065,.38,6),coat);armMesh.position.y=-.19;arm.add(armMesh);arms.push(arm);
+  }
+  const angle=i/24*Math.PI*2;person.position.set(14*Math.cos(angle),.12,11*Math.sin(angle));person.rotation.y=-angle+Math.PI/2;cityGroup.add(person);
+  pedestrians.push({group:person,legs,arms,phase:angle,speed:.0009+Math.random()*.0005});
+ }
+}
+buildCity();
 function resize(){const w=canvas.clientWidth,h=canvas.clientHeight;renderer.setSize(w,h,false);camera.aspect=w/h;camera.updateProjectionMatrix()}new ResizeObserver(resize).observe(canvas);resize();
 let rotating=true;document.querySelector('#rotateBtn').onclick=e=>{rotating=!rotating;e.target.textContent=rotating?'회전 ON':'회전 OFF';e.target.classList.toggle('active',rotating)};
 document.querySelector('#homeBtn').onclick=()=>{camera.position.set(24,24,30);controls.target.set(0,0,0);controls.update()};
-function animate(){requestAnimationFrame(animate);if(rotating)cityGroup.rotation.y+=.00035;cars.forEach(c=>{c.position.x+=c.userData.speed;if(c.position.x>50)c.position.x=-50});controls.update();renderer.render(scene,camera)}animate();
+function animate(){requestAnimationFrame(animate);if(rotating)cityGroup.rotation.y+=.00035;cars.forEach(c=>{c.position.x+=c.userData.speed;if(c.position.x>50)c.position.x=-50});pedestrians.forEach(p=>{p.phase+=p.speed*60;const a=p.phase;p.group.position.set(14*Math.cos(a),.12,11*Math.sin(a));p.group.rotation.y=-a+Math.PI/2;const swing=Math.sin(a*5)*.42;p.legs[0].rotation.x=swing;p.legs[1].rotation.x=-swing;p.arms[0].rotation.x=-swing*.65;p.arms[1].rotation.x=swing*.65});controls.update();renderer.render(scene,camera)}animate();
 
 function render(){
  document.querySelector('#worldClock').textContent=worldDate();
