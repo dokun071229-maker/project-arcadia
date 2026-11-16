@@ -25,6 +25,14 @@ button:active{transform:scale(.98)}button.active{background:#15566a;border-color
 footer{position:fixed;bottom:0;left:0;right:0;background:#081321ed;border-top:1px solid var(--line);padding:9px 12px calc(9px + env(safe-area-inset-bottom));display:flex;justify-content:center;z-index:8}footer button{width:100%;max-width:1050px;background:#17667b;border-color:#3997aa}
 @media(min-width:700px){.stats{grid-template-columns:repeat(4,1fr)}.citygrid{grid-template-columns:repeat(3,1fr)}main{padding-top:18px}}
 </style>
+
+<script type="importmap">
+{
+  "imports": {
+    "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js"
+  }
+}
+</script>
 </head>
 <body>
 <header><div><div class="brand">PROJECT SYNTHETIC SOCIETY</div><h1>ARCADIA · 3D WORLD</h1></div><div class="clock"><span id="worldClock">2051.01.01 08:00</span><small id="runState">WORLD RUNNING · 1×</small></div></header>
