@@ -1,0 +1,180 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#08111f"><link rel="manifest" href="manifest.webmanifest">
+<title>PROJECT ARCADIA · 3D WORLD</title>
+<style>
+:root{--bg:#07111e;--panel:#101e30;--line:#263d55;--txt:#eaf4ff;--muted:#9bb0c8;--cyan:#63dbea;--green:#72d9aa;--gold:#f1cb75}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--txt);font-family:system-ui,-apple-system,sans-serif}
+header{padding:13px 16px;background:#081321ed;border-bottom:1px solid var(--line);display:flex;justify-content:space-between;align-items:center;position:sticky;top:0;z-index:10;backdrop-filter:blur(12px)}
+.brand{font-size:10px;letter-spacing:.2em;color:var(--cyan);font-weight:800}h1{font-size:18px;margin:3px 0}.clock{font-variant-numeric:tabular-nums;color:var(--cyan);font-weight:800;text-align:right}.clock small{display:block;font-size:10px;color:var(--muted);font-weight:500}
+main{max-width:1100px;margin:auto;padding:12px 12px 85px}.sceneWrap{position:relative;height:min(62vh,560px);min-height:340px;border:1px solid #29425b;border-radius:17px;overflow:hidden;background:linear-gradient(#10263a,#0a1421)}
+#city3d{width:100%;height:100%;display:block;touch-action:none}
+.sceneTitle{position:absolute;left:13px;top:12px;background:#081522c9;border:1px solid #36516a;padding:8px 10px;border-radius:10px;font-size:12px;pointer-events:none}
+.sceneHint{position:absolute;right:12px;bottom:12px;background:#081522c9;border:1px solid #36516a;padding:7px 9px;border-radius:9px;color:#c1d4e7;font-size:10px;pointer-events:none}
+.sceneButtons{position:absolute;right:10px;top:10px;display:flex;gap:6px}
+button,select{background:#172b40;color:var(--txt);border:1px solid #36516a;border-radius:10px;padding:9px 11px;font-size:12px;font-weight:700}
+button:active{transform:scale(.98)}button.active{background:#15566a;border-color:#4ab5c6}
+.panel{background:linear-gradient(145deg,#13243a,#0e1a2a);border:1px solid var(--line);border-radius:15px;padding:13px;margin-top:12px}
+.row{display:flex;justify-content:space-between;align-items:center;gap:8px}.muted{font-size:11px;color:var(--muted)}.stats{display:grid;grid-template-columns:repeat(2,1fr);gap:8px;margin-top:10px}.stat{background:#0b1928;border:1px solid #20364c;border-radius:11px;padding:10px}.stat small{color:var(--muted);font-size:10px}.stat strong{display:block;font-size:18px;margin-top:3px;font-variant-numeric:tabular-nums}
+.controls{display:flex;gap:7px;flex-wrap:wrap;margin-top:10px}.controls button{flex:1;min-width:85px}.tabs{display:flex;gap:6px;overflow:auto;margin:13px 0 10px;scrollbar-width:none}.tabs button{white-space:nowrap}.view{display:none}.view.active{display:block}
+.list{display:grid;gap:7px}.item{padding:11px;background:#0d1b2b;border:1px solid #233950;border-radius:11px}.item b{font-size:12px}.item p{margin:5px 0 0;color:#b6c7da;font-size:11px;line-height:1.5}
+.citygrid{display:grid;grid-template-columns:repeat(2,1fr);gap:7px}.city{padding:10px;border:1px solid #263d55;background:#0d1b2b;border-radius:11px;text-align:left}.city b{display:block}.city small{color:var(--muted)}
+.notice{font-size:11px;line-height:1.55;color:#c4e9ed;background:#10303a;border:1px solid #285966;padding:10px;border-radius:10px}
+footer{position:fixed;bottom:0;left:0;right:0;background:#081321ed;border-top:1px solid var(--line);padding:9px 12px calc(9px + env(safe-area-inset-bottom));display:flex;justify-content:center;z-index:8}footer button{width:100%;max-width:1050px;background:#17667b;border-color:#3997aa}
+@media(min-width:700px){.stats{grid-template-columns:repeat(4,1fr)}.citygrid{grid-template-columns:repeat(3,1fr)}main{padding-top:18px}}
+</style>
+</head>
+<body>
+<header><div><div class="brand">PROJECT SYNTHETIC SOCIETY</div><h1>ARCADIA · 3D WORLD</h1></div><div class="clock"><span id="worldClock">2051.01.01 08:00</span><small id="runState">WORLD RUNNING · 1×</small></div></header>
+<main>
+<div class="sceneWrap">
+<canvas id="city3d"></canvas>
+<div class="sceneTitle"><b id="cityName">아우렐리아</b><div class="muted" id="cityDesc">중앙 행정 · 문화 중심지</div></div>
+<div class="sceneButtons"><button id="rotateBtn" class="active">회전 ON</button><button id="homeBtn">초기 시점</button></div>
+<div class="sceneHint">손가락 드래그: 회전 · 두 손가락: 확대/축소</div>
+</div>
+<div class="panel">
+<div class="row"><b>세계 시뮬레이션 제어</b><span class="muted">실시간 진행</span></div>
+<div class="controls"><button id="pauseBtn">Ⅱ 일시정지</button><button data-speed="1" class="speed active">1×</button><button data-speed="10" class="speed">10×</button><button data-speed="60" class="speed">60×</button></div>
+<div class="stats" id="stats"></div>
+</div>
+<div class="tabs" id="tabs"><button class="active" data-tab="events">실시간 사건</button><button data-tab="cities">도시 선택</button><button data-tab="people">시민</button><button data-tab="save">저장·백업</button></div>
+<section class="view active" id="events"><div class="list" id="eventList"></div></section>
+<section class="view" id="cities"><div class="citygrid" id="cityList"></div></section>
+<section class="view" id="people"><div class="list" id="peopleList"></div></section>
+<section class="view" id="save">
+<div class="notice">이 버전은 브라우저 로컬 저장소에 자동 저장하고, 앱을 다시 열면 마지막 시각부터 경과 시간을 반영해 세계 시간을 따라잡아. 기기 변경·브라우저 데이터 삭제에 대비해 JSON 백업을 보관해 줘. 클라우드 동기화는 서버 연결이 추가로 필요해.</div>
+<div class="controls"><button id="exportBtn">백업 내보내기</button><button id="importBtn">백업 불러오기</button><input id="file" type="file" accept="application/json" hidden></div>
+<div class="item" id="saveInfo" style="margin-top:9px"></div>
+</section>
+</main>
+<footer><button id="observeBtn">관찰 중 · 세계는 계속 움직이고 있어</button></footer>
+<script type="module">
+import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js';
+import {OrbitControls} from 'https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/controls/OrbitControls.js';
+
+const KEY='arcadia_persistent_world_v2';
+const citySeed=[
+['아우렐리아','중앙 행정·문화',160998],['노바','과학·AI 연구',120749],['베르디아','농업·식량',100624],['아이언폴','제조·산업',110686],['루미나','교육·예술',90562],['오르비스','금융·상업',85530],['세레나','의료·생명과학',75468],['아틀라스','건설·에너지',70437],['미라지','관광·문화',55343],['에코스','환경·생태',50312],['크로노스','교통·물류',45281],['헤이븐','주거·공동체',40250]
+];
+const initial={
+ sim:{year:2051,month:1,day:1,hour:8,minute:0,speed:1,paused:false,lastReal:Date.now()},
+ population:1006240,growth:4.8,unemployment:7.2,inflation:3.1,food:82.4,satisfaction:89.7,
+ cities:citySeed.map(([name,role,pop])=>({name,role,population:pop})),
+ citizens:[
+ {name:'이안 카엘',age:30,city:'노바',job:'AI 시스템 연구원',goal:'세계의 기원 연구',status:'기원 탐구회 연구 중'},
+ {name:'세린 아벨',age:28,city:'아우렐리아',job:'교육 연구자',goal:'시민 자치 확대',status:'정치 활동'},
+ {name:'로웬 베르크',age:49,city:'아이언폴',job:'제조기업 경영자',goal:'산업 자동화 확대',status:'노동자와 협상 고민'},
+ {name:'나엘 리안',age:33,city:'에코스',job:'환경과학자',goal:'도시 간 자원 협력',status:'환경 정책 추진'},
+ {name:'에린 모아',age:24,city:'루미나',job:'대학생·시민운동가',goal:'시민 자기결정권',status:'루미나 선언 운동'}
+ ],
+ events:[{date:'2050년 12월 31일',title:'아르카디아 2051년 진입',body:'지난해의 파업과 시민운동, 창조자 기원 논쟁을 안고 새로운 해가 시작됐다.'}],
+ lastSaved:null
+};
+let state;
+try{state=JSON.parse(localStorage.getItem(KEY))||initial}catch{state=initial}
+if(!state.sim)state=initial;
+const fmt=n=>Math.round(n).toLocaleString('ko-KR');
+const worldDate=()=>`${state.sim.year}.${String(state.sim.month).padStart(2,'0')}.${String(state.sim.day).padStart(2,'0')} ${String(state.sim.hour).padStart(2,'0')}:${String(state.sim.minute).padStart(2,'0')}`;
+function save(){state.sim.lastReal=Date.now();state.lastSaved=new Date().toISOString();localStorage.setItem(KEY,JSON.stringify(state))}
+function addEvent(title,body){state.events.unshift({date:worldDate(),title,body});state.events=state.events.slice(0,80)}
+function tickMinute(){
+ state.sim.minute++;if(state.sim.minute>=60){state.sim.minute=0;state.sim.hour++}
+ if(state.sim.hour>=24){state.sim.hour=0;state.sim.day++;daily()}
+ if(state.sim.day>30){state.sim.day=1;state.sim.month++;monthly()}
+ if(state.sim.month>12){state.sim.month=1;state.sim.year++;yearly()}
+}
+function daily(){
+ const delta=Math.round(state.population*(0.000001+Math.random()*0.000003));
+ state.population+=delta;const c=state.cities[Math.floor(Math.random()*state.cities.length)];c.population+=delta;
+ if(Math.random()<.18){const topics=[
+ ['출근 시간대 교통량 증가',`${c.name}의 주요 간선도로에서 출근 차량과 대중교통 이용이 증가했다.`],
+ ['지역 공동체 활동',`${c.name} 시민들이 지역 광장에서 자발적인 모임을 열었다.`],
+ ['생활비 논쟁',`${c.name}의 주거비와 생활물가를 둘러싼 시민 토론이 확산되고 있다.`],
+ ['기술 도입 논의',`${c.name}의 사업장들이 자동화 설비 도입과 노동환경 개선을 논의하고 있다.`],
+ ['문화 행사',`${c.name}에서 시민 예술가들이 야외 문화 행사를 개최했다.`]
+ ];const e=topics[Math.floor(Math.random()*topics.length)];addEvent(e[0],e[1])}
+ state.satisfaction=Math.max(45,Math.min(98,state.satisfaction+(Math.random()-.5)*.025));
+}
+function monthly(){
+ state.inflation=Math.max(-1,Math.min(20,state.inflation+(Math.random()-.48)*.06));
+ state.unemployment=Math.max(2,Math.min(25,state.unemployment+(Math.random()-.5)*.07));
+ state.food=Math.max(40,Math.min(100,state.food+(Math.random()-.48)*.08));
+ if(Math.random()<.65)addEvent('월간 사회 동향',`${state.sim.year}년 ${state.sim.month}월의 경제·노동·문화 활동이 집계됐다. 시민들의 선택이 도시의 다음 변화를 만들고 있다.`);
+}
+function yearly(){state.growth=+(state.growth+(Math.random()-.5)*.6).toFixed(1);state.citizens.forEach(c=>c.age++);addEvent('연례 사회·경제 결산',`연간 성장률 ${state.growth}%로 집계됐다. 인구 ${fmt(state.population)}명. 정치와 사회 구조는 시민들의 선택에 따라 변화한다.`)}
+// Restore elapsed offline time; cap catch-up to 30 days to keep mobile startup responsive.
+if(state.sim.lastReal){let elapsed=Math.min(30*86400,Math.max(0,(Date.now()-state.sim.lastReal)/1000));let minutes=Math.floor(elapsed*state.sim.speed/1);for(let i=0;i<minutes;i++)tickMinute()}
+state.sim.lastReal=Date.now();
+
+const canvas=document.querySelector('#city3d');
+const renderer=new THREE.WebGLRenderer({canvas,antialias:true,alpha:false});
+renderer.setPixelRatio(Math.min(devicePixelRatio,2));renderer.shadowMap.enabled=true;renderer.shadowMap.type=THREE.PCFSoftShadowMap;
+const scene=new THREE.Scene();scene.background=new THREE.Color(0x9bc5dc);scene.fog=new THREE.Fog(0x9bc5dc,38,100);
+const camera=new THREE.PerspectiveCamera(48,1,.1,220);camera.position.set(24,24,30);
+const controls=new OrbitControls(camera,renderer.domElement);controls.enableDamping=true;controls.maxPolarAngle=Math.PI/2.05;controls.minDistance=9;controls.maxDistance=65;
+scene.add(new THREE.HemisphereLight(0xcceaff,0x394a5a,2));
+const sun=new THREE.DirectionalLight(0xfff0cf,3);sun.position.set(-20,35,15);sun.castShadow=true;scene.add(sun);
+const ground=new THREE.Mesh(new THREE.PlaneGeometry(110,110),new THREE.MeshStandardMaterial({color:0x263e3e,roughness:1}));ground.rotation.x=-Math.PI/2;ground.receiveShadow=true;scene.add(ground);
+const cityGroup=new THREE.Group();scene.add(cityGroup);
+const matRoad=new THREE.MeshStandardMaterial({color:0x263442,roughness:.9}),matSide=new THREE.MeshStandardMaterial({color:0x9aa6a6}),matPark=new THREE.MeshStandardMaterial({color:0x356b50}),matGlass=new THREE.MeshStandardMaterial({color:0x5b9db0,metalness:.35,roughness:.3}),matConcrete=new THREE.MeshStandardMaterial({color:0x9caab4,roughness:.8});
+const box=(w,h,d,mat,x,y,z,parent=cityGroup)=>{const m=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),mat);m.position.set(x,y+h/2,z);m.castShadow=true;m.receiveShadow=true;parent.add(m);return m};
+function buildCity(){
+ cityGroup.clear();
+ // city blocks, road grid
+ box(110,.15,110,matSide,0,-.12,0);
+ for(let p=-42;p<=42;p+=14){box(3,.04,100,matRoad,p,.01,0);box(100,.04,3,matRoad,0,.015,p)}
+ // sidewalks and central plaza
+ box(18,.12,14,matPark,0,.08,0);
+ // blocks of towers and mid-rise buildings
+ for(let gx=-4;gx<=4;gx++)for(let gz=-4;gz<=4;gz++){
+  if(Math.abs(gx)%1===0 && Math.abs(gz)%1===0 && (gx===0||gz===0))continue;
+  const x=gx*10+(Math.random()-.5)*2,z=gz*10+(Math.random()-.5)*2;
+  const h=3+Math.random()* (Math.abs(gx)+Math.abs(gz)<4?22:11);
+  const w=3+Math.random()*2,d=3+Math.random()*2;
+  const m=box(w,h,d,Math.random()<.48?matGlass:matConcrete,x,h/2,z);
+  if(h>12){const crown=box(w*.65,1.2,d*.65,matGlass,x,h+0.6,z);crown.castShadow=true}
+  // windows as subtle facade strips
+  if(h>7){const winmat=new THREE.MeshStandardMaterial({color:0xc5e8ef,emissive:0x244454,roughness:.3});for(let yy=2;yy<h-1;yy+=2.5){const win=new THREE.Mesh(new THREE.BoxGeometry(w+.02,.13,.035),winmat);win.position.set(x,yy,z+d/2+.02);cityGroup.add(win)}}
+ }
+ // trees in plaza and street medians
+ const trunk=new THREE.MeshStandardMaterial({color:0x654a32}),leaves=new THREE.MeshStandardMaterial({color:0x3d9164});
+ for(let i=0;i<36;i++){let x=(Math.random()-.5)*85,z=(Math.random()-.5)*85;if(Math.abs(x%14)<2||Math.abs(z%14)<2)continue;const t=new THREE.Mesh(new THREE.CylinderGeometry(.12,.17,1.4,6),trunk);t.position.set(x,.7,z);cityGroup.add(t);const l=new THREE.Mesh(new THREE.SphereGeometry(.75,7,6),leaves);l.position.set(x,1.8,z);cityGroup.add(l)}
+ // moving cars
+ for(let i=0;i<22;i++){const car=new THREE.Mesh(new THREE.BoxGeometry(.65,.35,1.25),new THREE.MeshStandardMaterial({color:[0xe0bd69,0x78b9d0,0xd6dce0,0xb76b66][i%4]}));car.position.set(-47+Math.random()*94,.32,Math.round((Math.random()*6)-3)*14);car.userData={axis:'x',speed:.035+Math.random()*.035};cityGroup.add(car);cars.push(car)}
+}
+const cars=[];buildCity();
+function resize(){const w=canvas.clientWidth,h=canvas.clientHeight;renderer.setSize(w,h,false);camera.aspect=w/h;camera.updateProjectionMatrix()}new ResizeObserver(resize).observe(canvas);resize();
+let rotating=true;document.querySelector('#rotateBtn').onclick=e=>{rotating=!rotating;e.target.textContent=rotating?'회전 ON':'회전 OFF';e.target.classList.toggle('active',rotating)};
+document.querySelector('#homeBtn').onclick=()=>{camera.position.set(24,24,30);controls.target.set(0,0,0);controls.update()};
+function animate(){requestAnimationFrame(animate);if(rotating)cityGroup.rotation.y+=.00035;cars.forEach(c=>{c.position.x+=c.userData.speed;if(c.position.x>50)c.position.x=-50});controls.update();renderer.render(scene,camera)}animate();
+
+function render(){
+ document.querySelector('#worldClock').textContent=worldDate();
+ document.querySelector('#runState').textContent=(state.sim.paused?'WORLD PAUSED':'WORLD RUNNING')+' · '+state.sim.speed+'×';
+ const stats=[['총인구',fmt(state.population)+'명'],['경제 성장률',state.growth.toFixed(1)+'%'],['실업률',state.unemployment.toFixed(1)+'%'],['물가 상승률',state.inflation.toFixed(1)+'%'],['식량 자급률',state.food.toFixed(1)+'%'],['시민 만족도',state.satisfaction.toFixed(1)+'%'],['도시 수','12개'],['시뮬레이션 속도',state.sim.speed+'×']];
+ document.querySelector('#stats').innerHTML=stats.map(([k,v])=>`<div class="stat"><small>${k}</small><strong>${v}</strong></div>`).join('');
+ document.querySelector('#eventList').innerHTML=state.events.slice(0,25).map(e=>`<div class="item"><div class="row"><b>${e.title}</b><span class="muted">${e.date}</span></div><p>${e.body}</p></div>`).join('');
+ document.querySelector('#cityList').innerHTML=state.cities.map((c,i)=>`<button class="city" data-city="${i}"><b>${c.name}</b><small>${c.role}<br>${fmt(c.population)}명</small></button>`).join('');
+ document.querySelector('#peopleList').innerHTML=state.citizens.map(c=>`<div class="item"><b>${c.name} · ${c.age}세</b><p>${c.city} / ${c.job}<br>목표: ${c.goal}<br>현재: ${c.status}</p></div>`).join('');
+ document.querySelector('#saveInfo').innerHTML=`마지막 저장: ${state.lastSaved?new Date(state.lastSaved).toLocaleString('ko-KR'):'저장 전'}<br>세계 시각: ${worldDate()}<br>저장 방식: 이 브라우저의 로컬 저장소`;
+ document.querySelectorAll('.speed').forEach(b=>b.classList.toggle('active',Number(b.dataset.speed)===state.sim.speed));
+ document.querySelector('#pauseBtn').textContent=state.sim.paused?'▶ 재개':'Ⅱ 일시정지';
+}
+document.querySelector('#cityList').addEventListener('click',e=>{const b=e.target.closest('[data-city]');if(!b)return;const c=state.cities[Number(b.dataset.city)];document.querySelector('#cityName').textContent=c.name;document.querySelector('#cityDesc').textContent=c.role+' · 인구 '+fmt(c.population)+'명';addEvent('도시 관찰 변경',c.name+'의 도시 전경을 관찰하고 있다.');save();render();document.querySelector('.sceneWrap').scrollIntoView({behavior:'smooth'})});
+document.querySelector('#tabs').addEventListener('click',e=>{const b=e.target.closest('[data-tab]');if(!b)return;document.querySelectorAll('[data-tab]').forEach(x=>x.classList.toggle('active',x===b));document.querySelectorAll('.view').forEach(x=>x.classList.toggle('active',x.id===b.dataset.tab))});
+document.querySelector('#pauseBtn').onclick=()=>{state.sim.paused=!state.sim.paused;save();render()};
+document.querySelectorAll('.speed').forEach(b=>b.onclick=()=>{state.sim.speed=Number(b.dataset.speed);save();render()});
+document.querySelector('#exportBtn').onclick=()=>{const blob=new Blob([JSON.stringify(state,null,2)],{type:'application/json'});const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='arcadia-world-backup.json';a.click();URL.revokeObjectURL(a.href)};
+document.querySelector('#importBtn').onclick=()=>document.querySelector('#file').click();
+document.querySelector('#file').onchange=e=>{const f=e.target.files[0];if(!f)return;const r=new FileReader();r.onload=()=>{try{const s=JSON.parse(r.result);if(!s.sim||!s.cities)throw 0;state=s;save();render()}catch{alert('올바른 아르카디아 백업 파일이 아니야.')}};r.readAsText(f)};
+document.querySelector('#observeBtn').onclick=()=>{document.querySelector('#tabs').scrollIntoView({behavior:'smooth'})};
+// one simulation minute per real second at 1x, accelerated by selected multiplier
+setInterval(()=>{if(!state.sim.paused){for(let i=0;i<state.sim.speed;i++)tickMinute();render()}save()},1000);
+document.addEventListener('visibilitychange',()=>{if(document.hidden)save()});
+render();
+if('serviceWorker' in navigator && location.protocol.startsWith('http'))navigator.serviceWorker.register('./sw.js').catch(()=>{});
+</script>
+</body></html>

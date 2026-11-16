@@ -1,0 +1,10 @@
+{
+  "name": "PROJECT ARCADIA 3D World",
+  "short_name": "ARCADIA 3D",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "background_color": "#07111e",
+  "theme_color": "#081321",
+  "description": "실시간 3D 자율 가상사회 시뮬레이터",
+  "icons": []
+}
